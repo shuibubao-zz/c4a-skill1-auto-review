@@ -1,0 +1,25 @@
+# 行尾不变式（v5 P1 教训）：git 不对任何文件做行尾转换。
+#
+# 背景：Windows 上 Git for Windows 出厂默认 core.autocrlf=true 会把克隆出的
+# 文本文件转成 CRLF，而 .skill 包内是 LF——逐字节比对的防漂移护栏因此误报
+# 39 条「内容漂移」（归一后 48/48 一致，真漂移 0 条）。
+#
+# `* -text` 让本仓库：入库不转换、检出不转换、克隆即与提交字节一致。
+# 这与 build_skill_pkg.py 的三重防线配合：
+#   1) 打包时文本统一写 LF（本条保证克隆出的工作区就是 LF）；
+#   2) --check 对文本行尾归一后比对（双保险，见 build_skill_pkg.py）；
+#   3) 纯行尾差异只警告、不计入漂移。
+* -text
+
+# 显式声明二进制（-text 已覆盖，这里再声明 diff/ex合并行为，防误判）
+*.png binary
+*.jpg binary
+*.gif binary
+*.zip binary
+*.skill binary
+*.pdf binary
+*.docx binary
+*.xlsx binary
+*.mp4 binary
+*.woff binary
+*.woff2 binary
