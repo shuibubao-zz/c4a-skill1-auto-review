@@ -1,0 +1,18 @@
+{
+  "desc": "扁平目录形态：五项齐全、无 SKILL.md / .skill 包（与 G08 的包形态互补）",
+  "author": "周十",
+  "completeness": {
+    "skill_doc": true,
+    "executable_content": true,
+    "demo": true,
+    "teaching_doc": true,
+    "ai_log": true
+  },
+  "quality": {
+    "reusable": "✅",
+    "executable": "✅",
+    "verifiable": "✅",
+    "clear_io": "✅"
+  },
+  "note": "人工判读：扁平目录（文件直接放在根、无 SKILL.md/.skill 包）同样是合法提交形态，作者应按文件名前缀识别为周十。脚本真实可跑、含自检入口与预期输出；demo 为一张真实生成的运行结果图。判 ✅ 的依据是内容本身，与其目录形态无关。"
+}

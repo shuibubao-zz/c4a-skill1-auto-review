@@ -1,0 +1,59 @@
+# 克隆验收：评审者的原始场景复测（v5 P1 修复后，终版）
+
+> v5 P1 事故：`--check` 用逐字节比对，Windows 默认 `core.autocrlf=true` 克隆出 CRLF 工作区后，
+> **误报 39 条「内容漂移」**（内容其实一模一样）。本留档是修复后的复测，**每次提交前固定执行**。
+
+复测日期：2026-10-07（v5 终版包，54 文件 / 94,766 字节）
+环境：全新 `git clone` 到纯 ASCII 路径 `C:/Users/Public/c4a_clone_test2`
+
+## 1. 克隆环境（确认是"评审者的默认配置"，不是我挑过的）
+
+```
+system  core.autocrlf = true
+global  core.autocrlf = (未设置)
+local   core.autocrlf = (未设置)
+生效来源：file:C:/Users/卢怡然/.workbuddy/binaries/PortableGit/versions/1.2.0/etc/gitconfig   true
+```
+
+即：Git for Windows 出厂系统配置，**评审者 clone 时就是这个值**。
+
+## 2. 克隆后工作区行尾抽检（* -text 是否生效）
+
+| 文件 | CRLF 数 | 字节 |
+|---|---:|---:|
+| `c4-skill-evaluator/scripts/c4_evaluator.py` | 0 | 58,303 |
+| `c4-skill-evaluator/scripts/build_skill_pkg.py` | 0 | 6,289 |
+| `evidence/golden_test_v3.txt` | 0 | 3,801 |
+| `README.md` | 0 | 10,549 |
+| `卢怡然_C4A_AAR.md` | 0 | 14,589 |
+| **合计** | **0** | |
+
+→ 第一道防线生效：git 没做任何行尾转换。
+
+## 3. 验收命令（全部在克隆目录里跑）
+
+```
+$ python c4-skill-evaluator/scripts/build_skill_pkg.py --check
+  -> OK：包内 54 个文件与仓库内容一致（文本行尾归一后比对）     exit=0
+     ↑ 修复前同一场景：exit=1、误报 39 条
+
+$ python scripts/c4_evaluator.py selftest
+  -> 17/17 通过                                              exit=0
+$ python scripts/c4_evaluator.py selftest   （sys.modules['yaml']=None）
+  -> 17/17 通过                                              exit=0
+
+$ python scripts/golden_test.py --out <目录外>
+  -> 3801 字节，与 evidence/golden_test_v3.txt 逐字节一致       exit=0
+
+包 sha256：af710124410c7c518c52e03ade8fb6f8dab6f6d44347d50d0a33f1610086ec15（94,766 字节）
+```
+
+## 4. 修复过程中抓到的两次真漂移（护栏没被改废的证据）
+
+误报修好后，护栏**仍然抓得到真漂移**——这一点比"误报归零"更重要：
+
+1. **8 条**：代码已进 v5，但提交里的 `.skill` 还是旧包（未重打）→ 重打包后归零。
+2. **3 条**：改完包内三份文档（`SKILL.md` / `拿来说明.md` / `教学说明.md`）未重打
+   → `--check` 立即报「内容漂移: SKILL.md / 拿来说明.md / 教学说明.md」→ 重打包后归零。
+
+**结论**：这条护栏现在既能"不误报"，又能"抓真漂移"。

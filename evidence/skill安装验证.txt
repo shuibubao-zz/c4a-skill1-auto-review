@@ -1,0 +1,54 @@
+# .skill 安装验证（解包副本上真跑）
+
+打包：c4-skill-evaluator.skill（54 个文件，94,766 字节，zip，SKILL.md 在根；
+     由 scripts/build_skill_pkg.py 生成，包内文本一律 LF）
+包 sha256：af710124410c7c518c52e03ade8fb6f8dab6f6d44347d50d0a33f1610086ec15
+解包到：C:/Users/Public/c4a_install_test（纯 ASCII 路径，模拟换台机器）
+验证日期：2026-10-07（v5 加固轮终版重打、重验；上一轮为 2026-10-06 v4）
+复现脚本：evidence/解包复验脚本.py
+
+$ python scripts/c4_evaluator.py selftest
+  -> 17/17 通过                                            exit=0
+
+$ python scripts/c4_evaluator.py selftest   （sys.modules['yaml']=None，模拟无 PyYAML）
+  -> 17/17 通过                                            exit=0
+  ※ v3 时代同一环境会崩溃（rubric 行内注释 → int() ValueError，P0）；
+    v4 修复后本项是每次打包后的固定验收项。v5 新增第 17 项：
+    防漂移护栏对纯行尾差异归一（P1 回归）。
+
+$ python scripts/golden_test.py --out <目录外>
+  -> 完整性判定 97.8%（n=45）；质量 ≤1 级 97.2%；严重误判 1 例（2.8%）；作者识别 9/9
+     输出 3801 字节，与 evidence/golden_test_v3.txt **逐字节一致**
+
+$ python scripts/c4_evaluator.py evaluate references/golden_set/G09_flat_dir --out <目录外>
+  -> 识别 1 位作者，平均综合分 100.0（与 G09 人工标签「5/5 齐全 + 四条件全 ✅」一致）
+
+$ python scripts/build_skill_pkg.py --check
+  -> OK：包内 54 个文件与仓库内容一致（文本行尾归一后比对）      exit=0
+
+---
+
+## 行尾限定条件（v5 P1，务必读）
+
+上面所有"一致/sha256"结论，成立条件是**文本行尾**。具体说：
+
+- 包内文本文件一律 **LF**（打包时统一写入）；
+- 仓库侧 `.gitattributes` 写 `* -text`，git 不做任何行尾转换，因此克隆出来仍是 LF；
+- `--check` 比对前会把两侧文本都归一成 LF 再比内容，**二进制不归一**（归一 = 破坏 zip/png）；
+- **纯行尾差异只列为 warning，不计入漂移**。
+
+所以在 **Windows 默认 `core.autocrlf=true`** 下克隆，结论依然成立（不会误报假漂移）——
+复测见 `evidence/克隆验收_默认配置.txt`。
+
+不适用/未验证的情形：
+- 若手工把工作区文件改成 CRLF 再比字节级 sha256，哈希当然会变——此时应看 `--check` 的结论，不要看裸哈希；
+- 二进制一致性只验证了 zip/png 能被正常解包与打开，未做像素级比对。
+
+---
+
+## 附：本轮护栏又抓到一次真漂移（第三次）
+
+改完包内三份文档（SKILL.md / 拿来说明.md / 教学说明.md）后没重打包，
+`--check` 立刻报 3 条「内容漂移」。重打包后归零。
+连同 `克隆验收_默认配置.txt` 里那次（代码进 v5 但 .skill 未重打，报 8 条），
+**护栏在误报修复之后至少又抓到两次真漂移**——它没被改废。
